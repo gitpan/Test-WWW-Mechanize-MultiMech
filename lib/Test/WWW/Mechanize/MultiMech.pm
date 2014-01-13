@@ -3,7 +3,7 @@ package Test::WWW::Mechanize::MultiMech;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-our $VERSION = '1.002';
+our $VERSION = '1.003';
 use Test::WWW::Mechanize;
 use Test::Builder qw//;
 use Carp qw/croak/;
@@ -46,12 +46,14 @@ sub new {
 
 sub _mech {
     my $self = shift;
-    return $self->{USERS}{ $self->{USERS_ORDER}[0] }{mech};
-}
+    my ( $any_user ) = grep !$self->{IGNORED_USERS}{$_},
+        @{$self->{USERS_ORDER}};
 
-sub _all_mechs {
-    my $self = shift;
-    return map $_->{mech}, @{ $self->{USERS} };
+    $any_user
+        or croak q{Didn't find any available users when getting any}
+            . q{ user's mech object.};
+
+    return $self->{USERS}{ $any_user }{mech};
 }
 
 sub login {
@@ -69,7 +71,9 @@ sub login {
 
     my $users = $self->{USERS};
     my $c = 0;
-    for my $alias ( @{$self->{USERS_ORDER}} ) {
+    for my $alias (
+        grep !$self->{IGNORED_USERS}{$_}, @{$self->{USERS_ORDER}}
+    ) {
         my $mech = $users->{ $alias }{mech};
 
         $mech->get_ok(
@@ -183,6 +187,10 @@ sub ignore_user {
     return unless exists $self->{USERS}{ $alias };
 
     $self->{IGNORED_USERS}{ $alias } = 1;
+    if ( keys %{$self->{IGNORED_USERS}} eq @{ $self->{USERS_ORDER} } ){
+        croak q{You ignored all your users. Can't function without at least
+            one active user};
+    }
 }
 
 sub unignore_user {
@@ -471,6 +479,11 @@ Makes the MultiMech ignore a particular user when making all-user
 method calls. Takes one argument, which is the alias of a user to ignore.
 Ignoring an already-ignored user is perfectly fine and has no ill effects.
 The method does not return anything meaningful.
+
+You can NOT ignore all of your users; at least one user must be
+unignored at all times. The module will
+L<croak()|https://metacpan.org/pod/Carp> if you attempt to ignore
+the last available user.
 
 B<NOTE:> ignored users are simply excluded from the all-user method calls.
 It is still perfectly valid to call single-user method calls on

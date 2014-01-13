@@ -1,5 +1,11 @@
 Revision history for Test-WWW-Mechanize-MultiMech
 
+1.003   2014-01-13
+        - Fixed some issues due to new ->ignore_user feature. New
+          error checking to ensure mech object for ->any method calls
+          is available.
+        - Disallowed ignoring all users
+
 1.002   2014-01-13
         - Added ->ignore_user and ->unignore_user
         - Made ->all_users take an optional argument, specifying

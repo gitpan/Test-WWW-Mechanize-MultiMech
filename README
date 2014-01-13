@@ -254,6 +254,11 @@ METHODS
     Ignoring an already-ignored user is perfectly fine and has no ill
     effects. The method does not return anything meaningful.
 
+    You can NOT ignore all of your users; at least one user must be
+    unignored at all times. The module will croak()
+    <https://metacpan.org/pod/Carp> if you attempt to ignore the last
+    available user.
+
     NOTE: ignored users are simply excluded from the all-user method calls.
     It is still perfectly valid to call single-user method calls on ignored
     users (e.g. "$mech->ignoreduser->get_ok('/foo')")
