@@ -111,6 +111,10 @@ GENERAL IDEA BEHIND THE INTERFACE OF THIS MODULE
         # call ->uri on every mech object and get the result of any one of them
         $mech->uri->{any}->query;
 
+    Note: if you "->ignore()" a user, they won't be considered as a
+    candidate for "$mech->any" and they won't be as a key in the return
+    value of all-user method calls.
+
 METHODS
   "new"
         my $mech = Test::WWW::Mechanize::MultiMech->new(
@@ -250,9 +254,13 @@ METHODS
         $mech->get_ok('/foo');
 
     Makes the MultiMech ignore a particular user when making all-user method
-    calls. Takes one argument, which is the alias of a user to ignore.
-    Ignoring an already-ignored user is perfectly fine and has no ill
-    effects. The method does not return anything meaningful.
+    calls. Ignored users won't be considered when using "$mech->any" calls,
+    and won't be present in the return value hashref of all-user method
+    calls.
+
+    Takes one argument, which is the alias of a user to ignore. Ignoring an
+    already-ignored user is perfectly fine and has no ill effects. The
+    method does not return anything meaningful.
 
     You can NOT ignore all of your users; at least one user must be
     unignored at all times. The module will croak()

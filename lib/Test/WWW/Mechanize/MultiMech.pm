@@ -3,7 +3,7 @@ package Test::WWW::Mechanize::MultiMech;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-our $VERSION = '1.003';
+our $VERSION = '1.004';
 use Test::WWW::Mechanize;
 use Test::Builder qw//;
 use Carp qw/croak/;
@@ -326,6 +326,10 @@ and sticking with it. E.g.:
     # call ->uri on every mech object and get the result of any one of them
     $mech->uri->{any}->query;
 
+B<Note:> if you C<< ->ignore() >> a user, they won't be considered
+as a candidate for C<< $mech->any >> and they won't be as a key in the
+return value of all-user method calls.
+
 =head1 METHODS
 
 =head2 C<new>
@@ -476,7 +480,11 @@ method below). If set to a true value, ignored users will be included.
     $mech->get_ok('/foo');
 
 Makes the MultiMech ignore a particular user when making all-user
-method calls. Takes one argument, which is the alias of a user to ignore.
+method calls. Ignored users won't be considered when using
+C<< $mech->any >> calls, and won't be present in the return value
+hashref of all-user method calls.
+
+Takes one argument, which is the alias of a user to ignore.
 Ignoring an already-ignored user is perfectly fine and has no ill effects.
 The method does not return anything meaningful.
 
