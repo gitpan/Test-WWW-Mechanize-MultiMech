@@ -44,6 +44,10 @@ SYNOPSIS
         $mech->super  ->text_contains('You are a super user!'  );  # super user only
         $mech->clerk  ->text_contains('You are a clerk user!'  );  # clerk user only
 
+        # nothing stops you from using variables as method calls
+        $mech->$_->get_ok('/foobar')
+            for qw/admin shipper/;
+
         # call ->res once on "any one" mech object
         print $mech->any->res->decoded_content;
 
@@ -52,6 +56,11 @@ SYNOPSIS
 
         # call ->uri method on every object and inspect value returned for 'any one' user
         print $mech->uri->{any}->query;
+
+        # ignore user 'super' when making all-user method calls
+        $mech->ignore('super');
+        $mech->get_ok('/not-super'); # this was not called for user 'super'
+        $mech->unignore('super');
 
 DESCRIPTION
     Ofttimes I had to test a web app where I had several user permission
@@ -223,9 +232,49 @@ METHODS
             print "I'm testing user $_\n";
         }
 
-    Takes no arguments. Returns a list of user aliases currently used by
-    MultiMech, in the same order in which they are called in all-object
-    method calls.
+        # printing all users, even ignored ones
+        for ( $mech->all_users(1) ) {
+            print "I'm testing user $_\n";
+        }
+
+    Returns a list of user aliases currently used by MultiMech, in the same
+    order in which they are called in all-object method calls. Takes one
+    optional true/value argument that specifies whether to include ignored
+    users (see "->ignore_user()" method below). If set to a true value,
+    ignored users will be included.
+
+  "ignore_user"
+        $mech->ignore_user('user1');
+
+        # This will NOT be called on user 'user1':
+        $mech->get_ok('/foo');
+
+    Makes the MultiMech ignore a particular user when making all-user method
+    calls. Takes one argument, which is the alias of a user to ignore.
+    Ignoring an already-ignored user is perfectly fine and has no ill
+    effects. The method does not return anything meaningful.
+
+    NOTE: ignored users are simply excluded from the all-user method calls.
+    It is still perfectly valid to call single-user method calls on ignored
+    users (e.g. "$mech->ignoreduser->get_ok('/foo')")
+
+  "unignore_user"
+        # This will NOT be called on ignored user 'user1':
+        $mech->get_ok('/foo');
+        $mech->unignore_user('user1');
+
+        # User 'user1' is now back in; this method will be called for him now
+        $mech->get_ok('/foo');
+
+    Undoes what "->ignore_user()" does (removes an ignored user from the
+    ignore list). Takes one argument, which is the alias of a user to
+    unignore. Unignoring a non-ignored user is fine and has no ill effects.
+    Does not return any meaningful value.
+
+CAVEATS
+    What sucks about this module is the output is rather ugly and too
+    verbose. I'm open to suggestions on how to make it better looking, while
+    retaining information on which 'user' is doing what.
 
 AUTHOR
     Zoffix Znet, "<zoffix at cpan.org>"

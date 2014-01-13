@@ -3,7 +3,7 @@ package Test::WWW::Mechanize::MultiMech;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-our $VERSION = '1.001';
+our $VERSION = '1.002';
 use Test::WWW::Mechanize;
 use Test::Builder qw//;
 use Carp qw/croak/;
@@ -122,7 +122,9 @@ sub _call_mech_method_on_each_user {
     my ( $self, $method, $args ) = @_;
 
     my %returns;
-    for my $alias ( @{$self->{USERS_ORDER}} ) {
+    for my $alias (
+        grep !$self->{IGNORED_USERS}{$_}, @{$self->{USERS_ORDER}}
+    ) {
         _diag("\n[$alias] Calling ->$method()\n");
         $returns{ $alias }
         = $self->{USERS}{ $alias }{mech}->$method( @$args );
@@ -133,35 +135,35 @@ sub _call_mech_method_on_each_user {
 }
 
 sub remove_user {
-    my ( $self, $login ) = @_;
+    my ( $self, $alias ) = @_;
 
-    return unless exists $self->{USERS}{ $login };
+    return unless exists $self->{USERS}{ $alias };
 
     @{ $self->{USERS_ORDER} }
-    = grep $_ ne $login, @{ $self->{USERS_ORDER}  };
+    = grep $_ ne $alias, @{ $self->{USERS_ORDER}  };
 
-    my $args = delete $self->{USERS}{ $login };
+    my $args = delete $self->{USERS}{ $alias };
 
     croak 'You must have at least one user and you '
         . 'just removed the last one'
         unless @{ $self->{USERS_ORDER}  };
 
-    return ( $login, $args );
+    return ( $alias, $args );
 }
 
 sub add_user {
-    my ( $self, $login, $args ) = @_;
+    my ( $self, $alias, $args ) = @_;
 
     my $mech = Test::WWW::Mechanize->new( %{ $self->{MECH_ARGS} } );
 
-    $self->{USERS}{ $login } = {
+    $self->{USERS}{ $alias } = {
         %{ $args || {} },
         mech => $mech,
     };
 
     @{ $self->{USERS_ORDER} } = (
-        ( grep $_ ne $login, @{ $self->{USERS_ORDER} } ),
-        $login,
+        ( grep $_ ne $alias, @{ $self->{USERS_ORDER} } ),
+        $alias,
     );
 
     return;
@@ -169,7 +171,24 @@ sub add_user {
 
 sub all_users {
     my $self = shift;
-    return @{ $self->{USERS_ORDER} };
+    my $is_include_ignored = shift;
+    return $is_include_ignored
+        ? @{ $self->{USERS_ORDER} }
+        : grep !$self->{IGNORED_USERS}{ $_ }, @{ $self->{USERS_ORDER} };
+}
+
+sub ignore_user {
+    my ( $self, $alias ) = @_;
+
+    return unless exists $self->{USERS}{ $alias };
+
+    $self->{IGNORED_USERS}{ $alias } = 1;
+}
+
+sub unignore_user {
+    my ( $self, $alias ) = @_;
+
+    delete $self->{IGNORED_USERS}{ $alias };
 }
 
 q|
@@ -227,6 +246,10 @@ Test::WWW::Mechanize::MultiMech - coordinate multi-object mech tests for multi-u
     $mech->super  ->text_contains('You are a super user!'  );  # super user only
     $mech->clerk  ->text_contains('You are a clerk user!'  );  # clerk user only
 
+    # nothing stops you from using variables as method calls
+    $mech->$_->get_ok('/foobar')
+        for qw/admin shipper/;
+
     # call ->res once on "any one" mech object
     print $mech->any->res->decoded_content;
 
@@ -235,6 +258,11 @@ Test::WWW::Mechanize::MultiMech - coordinate multi-object mech tests for multi-u
 
     # call ->uri method on every object and inspect value returned for 'any one' user
     print $mech->uri->{any}->query;
+
+    # ignore user 'super' when making all-user method calls
+    $mech->ignore('super');
+    $mech->get_ok('/not-super'); # this was not called for user 'super'
+    $mech->unignore('super');
 
 =head1 DESCRIPTION
 
@@ -421,9 +449,52 @@ L<croak()|https://metacpan.org/pod/Carp>.
         print "I'm testing user $_\n";
     }
 
-Takes no arguments. Returns a list of user aliases currently used by
+    # printing all users, even ignored ones
+    for ( $mech->all_users(1) ) {
+        print "I'm testing user $_\n";
+    }
+
+Returns a list of user aliases currently used by
 MultiMech, in the same order in which they are called in
-all-object method calls.
+all-object method calls. Takes one optional true/value argument that
+specifies whether to include ignored users (see C<< ->ignore_user() >>
+method below). If set to a true value, ignored users will be included.
+
+=head2 C<ignore_user>
+
+    $mech->ignore_user('user1');
+
+    # This will NOT be called on user 'user1':
+    $mech->get_ok('/foo');
+
+Makes the MultiMech ignore a particular user when making all-user
+method calls. Takes one argument, which is the alias of a user to ignore.
+Ignoring an already-ignored user is perfectly fine and has no ill effects.
+The method does not return anything meaningful.
+
+B<NOTE:> ignored users are simply excluded from the all-user method calls.
+It is still perfectly valid to call single-user method calls on
+ignored users (e.g. C<< $mech->ignoreduser->get_ok('/foo') >>)
+
+=head2 C<unignore_user>
+
+    # This will NOT be called on ignored user 'user1':
+    $mech->get_ok('/foo');
+    $mech->unignore_user('user1');
+
+    # User 'user1' is now back in; this method will be called for him now
+    $mech->get_ok('/foo');
+
+Undoes what C<< ->ignore_user() >> does (removes an ignored user
+from the ignore list). Takes one argument, which is the alias of a user
+to unignore. Unignoring a non-ignored user is fine and has no ill effects.
+Does not return any meaningful value.
+
+=head1 CAVEATS
+
+What sucks about this module is the output is rather ugly and too
+verbose. I'm open to suggestions on how to make it better looking, while
+retaining information on which 'user' is doing what.
 
 =head1 AUTHOR
 
