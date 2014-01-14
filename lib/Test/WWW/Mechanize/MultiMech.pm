@@ -3,7 +3,7 @@ package Test::WWW::Mechanize::MultiMech;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-our $VERSION = '1.004';
+our $VERSION = '1.005';
 use Test::WWW::Mechanize;
 use Test::Builder qw//;
 use Carp qw/croak/;
@@ -110,8 +110,9 @@ sub AUTOLOAD {
         return $self->_call_mech_method_on_each_user( $method, \@args );
     }
     elsif ( grep $_ eq $method, @{ $self->{USERS_ORDER} } ) {
-        _diag "[$method]-only call";
-        return $self->{USERS}{ $method }{mech};
+        my $alias = $method;
+        _diag "[$alias]-only call";
+        return $self->{USERS}{ $alias }{mech};
     }
     elsif ( $method eq 'any' ) {
         _diag "[any] call";
@@ -125,6 +126,7 @@ sub AUTOLOAD {
 sub _call_mech_method_on_each_user {
     my ( $self, $method, $args ) = @_;
 
+    local $Test::Builder::Level = $Test::Builder::Level + 2;
     my %returns;
     for my $alias (
         grep !$self->{IGNORED_USERS}{$_}, @{$self->{USERS_ORDER}}

@@ -16,7 +16,7 @@ name: Test-WWW-Mechanize-MultiMech
 provides:
   Test::WWW::Mechanize::MultiMech:
     file: lib/Test/WWW/Mechanize/MultiMech.pm
-    version: 1.004
+    version: 1.005
 requires:
   Carp: 1.26
   Test::Builder: 0.99
@@ -24,4 +24,4 @@ requires:
   perl: 5.006
 resources:
   license: http://www.perlfoundation.org/artistic_license_2_0
-version: 1.004
+version: 1.005

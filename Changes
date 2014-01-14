@@ -1,5 +1,10 @@
 Revision history for Test-WWW-Mechanize-MultiMech
 
+1.005   2014-01-14
+        - Fixed a bug where failing tests on all-user method calls
+          referenced line number in this module, instead of where they
+          were called from in the test.
+
 1.004   2014-01-13
         - Clarified in the docs that "any" will ignore ->ignore()d users
 
