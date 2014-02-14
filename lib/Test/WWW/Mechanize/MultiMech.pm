@@ -3,7 +3,9 @@ package Test::WWW::Mechanize::MultiMech;
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-our $VERSION = '1.005';
+
+our $VERSION = '1.006001'; # VERSION
+
 use Test::WWW::Mechanize;
 use Test::Builder qw//;
 use Carp qw/croak/;
@@ -70,7 +72,6 @@ sub login {
     }
 
     my $users = $self->{USERS};
-    my $c = 0;
     for my $alias (
         grep !$self->{IGNORED_USERS}{$_}, @{$self->{USERS_ORDER}}
     ) {
@@ -102,6 +103,8 @@ sub login {
 sub AUTOLOAD {
     my ( $self, @args ) = @_;
 
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+
     our $AUTOLOAD;
     my $method = (split /::/, $AUTOLOAD)[-1];
     return if $method eq 'DESTROY';
@@ -126,7 +129,8 @@ sub AUTOLOAD {
 sub _call_mech_method_on_each_user {
     my ( $self, $method, $args ) = @_;
 
-    local $Test::Builder::Level = $Test::Builder::Level + 2;
+    local $Test::Builder::Level = $Test::Builder::Level + 1;
+
     my %returns;
     for my $alias (
         grep !$self->{IGNORED_USERS}{$_}, @{$self->{USERS_ORDER}}
@@ -209,6 +213,8 @@ __END__
 
 =encoding utf8
 
+=for stopwords Ofttimes Unignoring admin admins app mech unignore unignored
+
 =head1 NAME
 
 Test::WWW::Mechanize::MultiMech - coordinate multi-object mech tests for multi-user web app testing
@@ -289,8 +295,8 @@ Note that this module does not fork out or do any other business to
 make all the mech objects execute their methods B<simultaneously>. The
 methods that are called to be executed on all mech objects will be called
 in the order that you specify the C<users> to the C<< ->new >> method.
-Which user you get when using C<any>—either as a method or the key
-in return value hashref—is not specified; it is what it says on the tin,
+Which user you get when using C<any>, either as a method or the key
+in return value hashref, is not specified; it is what it says on the tin,
 "any" user.
 
 =head1 GENERAL IDEA BEHIND THE INTERFACE OF THIS MODULE
@@ -353,7 +359,7 @@ You B<must> specify at least one user using the C<users> key, whose
 value is an arrayref of users. Everything else will be B<passed> to
 the C<< ->new >> method of L<Test::WWW::Mechanize>. The users arrayref
 is specified as a list of key/value pairs, where keys are user aliases
-and values are—possibly empty—hashrefs of parameters. The aliases will be
+and values are, possibly empty, hashrefs of parameters. The aliases will be
 used as method calls to call methods on mech object of individual
 users (see L<GENERAL IDEA BEHIND THE INTERFACE OF THIS MODULE>
 section above), so ensure your user aliases do not conflict with mech
@@ -412,7 +418,7 @@ method of L<Test::WWW::Mechanize>.
 The C<fields> argument, if specified, can contain any field name
 whose value is C<\'LOGIN'> or C<\'PASS'> (note the reference
 operator C<\>). If such fields are specified, their values will be
-substituded with the login/password of each user individually.
+substituted with the login/password of each user individually.
 
 =head2 C<add_user>
 
@@ -425,10 +431,10 @@ substituded with the login/password of each user individually.
     );
 
 Adds new mech object to the bundle. This can be useful when you
-want to do a quick test on a page with an unpriveleged user, whom
+want to do a quick test on a page with an unprivileged user, whom
 you dump with a C<< ->remove_user >> method.
 B<Takes> a user alias, optionally followed by user args hashref.
-See C<< ->new() >> method for passible keys/values in the user args
+See C<< ->new() >> method for possible keys/values in the user args
 hashref. Calling with a user alias alone is equivalent to calling with
 an empty user args hashref.
 
@@ -519,82 +525,41 @@ What sucks about this module is the output is rather ugly and too
 verbose. I'm open to suggestions on how to make it better looking, while
 retaining information on which 'user' is doing what.
 
-=head1 AUTHOR
+=head1 REPOSITORY
 
-Zoffix Znet, C<< <zoffix at cpan.org> >>
+=for html  <div style="display: table; height: 91px; background: url(http://zoffix.com/CPAN/Dist-Zilla-Plugin-Pod-Spiffy/icons/section-github.png) no-repeat left; padding-left: 120px;" ><div style="display: table-cell; vertical-align: middle;">
+
+Fork this module on GitHub:
+L<https://github.com/zoffixznet/Test-WWW-Mechanize-MultiMech>
+
+=for html  </div></div>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to C<bug-test-www-mechanize-multimech at rt.cpan.org>, or through
-the web interface at L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Test-WWW-Mechanize-MultiMech>.  I will be notified, and then you'll
-automatically be notified of progress on your bug as I make changes.
+=for html  <div style="display: table; height: 91px; background: url(http://zoffix.com/CPAN/Dist-Zilla-Plugin-Pod-Spiffy/icons/section-bugs.png) no-repeat left; padding-left: 120px;" ><div style="display: table-cell; vertical-align: middle;">
 
-=head1 SUPPORT
+To report bugs or request features, please use
+L<https://github.com/zoffixznet/Test-WWW-Mechanize-MultiMech/issues>
 
-You can find documentation for this module with the perldoc command.
+If you can't access GitHub, you can email your request
+to C<bug-Test-WWW-Mechanize-MultiMech at rt.cpan.org>
 
-    perldoc Test::WWW::Mechanize::MultiMech
+=for html  </div></div>
 
-You can also look for information at:
+=head1 AUTHOR
 
-=over 4
+=for html  <div style="display: table; height: 91px; background: url(http://zoffix.com/CPAN/Dist-Zilla-Plugin-Pod-Spiffy/icons/section-author.png) no-repeat left; padding-left: 120px;" ><div style="display: table-cell; vertical-align: middle;">
 
-=item * RT: CPAN's request tracker (report bugs here)
+=for html   <span style="display: inline-block; text-align: center;"> <a href="http://metacpan.org/author/ZOFFIX"> <img src="http://www.gravatar.com/avatar/328e658ab6b08dfb5c106266a4a5d065?d=http%3A%2F%2Fwww.gravatar.com%2Favatar%2F627d83ef9879f31bdabf448e666a32d5" alt="ZOFFIX" style="display: block; margin: 0 3px 5px 0!important; border: 1px solid #666; border-radius: 3px; "> <span style="color: #333; font-weight: bold;">ZOFFIX</span> </a> </span>
 
-L<http://rt.cpan.org/NoAuth/Bugs.html?Dist=Test-WWW-Mechanize-MultiMech>
+=for text Zoffix Znet <zoffix at cpan.org>
 
-=item * AnnoCPAN: Annotated CPAN documentation
+=for html  </div></div>
 
-L<http://annocpan.org/dist/Test-WWW-Mechanize-MultiMech>
+=head1 LICENSE
 
-=item * CPAN Ratings
-
-L<http://cpanratings.perl.org/d/Test-WWW-Mechanize-MultiMech>
-
-=item * Search CPAN
-
-L<http://search.cpan.org/dist/Test-WWW-Mechanize-MultiMech/>
-
-=back
-
-=head1 LICENSE AND COPYRIGHT
-
-Copyright 2014 Zoffix Znet.
-
-This program is free software; you can redistribute it and/or modify it
-under the terms of the the Artistic License (2.0). You may obtain a
-copy of the full license at:
-
-L<http://www.perlfoundation.org/artistic_license_2_0>
-
-Any use, modification, and distribution of the Standard or Modified
-Versions is governed by this Artistic License. By using, modifying or
-distributing the Package, you accept this license. Do not use, modify,
-or distribute the Package, if you do not accept this license.
-
-If your Modified Version has been derived from a Modified Version made
-by someone other than you, you are nevertheless required to ensure that
-your Modified Version complies with the requirements of this license.
-
-This license does not grant you the right to use any trademark, service
-mark, tradename, or logo of the Copyright Holder.
-
-This license includes the non-exclusive, worldwide, free-of-charge
-patent license to make, have made, use, offer to sell, sell, import and
-otherwise transfer the Package with respect to any patent claims
-licensable by the Copyright Holder that are necessarily infringed by the
-Package. If you institute patent litigation (including a cross-claim or
-counterclaim) against any party alleging that the Package constitutes
-direct or contributory patent infringement, then this Artistic License
-to you shall terminate on the date that such litigation is filed.
-
-Disclaimer of Warranty: THE PACKAGE IS PROVIDED BY THE COPYRIGHT HOLDER
-AND CONTRIBUTORS "AS IS' AND WITHOUT ANY EXPRESS OR IMPLIED WARRANTIES.
-THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE, OR NON-INFRINGEMENT ARE DISCLAIMED TO THE EXTENT PERMITTED BY
-YOUR LOCAL LAW. UNLESS REQUIRED BY LAW, NO COPYRIGHT HOLDER OR
-CONTRIBUTOR WILL BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, OR
-CONSEQUENTIAL DAMAGES ARISING IN ANY WAY OUT OF THE USE OF THE PACKAGE,
-EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+You can use and distribute this module under the same terms as Perl itself.
+See the C<LICENSE> file included in this distribution for complete
+details.
 
 =cut
